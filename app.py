@@ -1,17 +1,3 @@
-import sys
-import io
-
-# ★最重要：Streamlitなどのライブラリを読み込む「前」に設定を変更する★
-# これでWindowsのターミナルを再起動しても日本語エラーが出なくなります
-# クラウド上で禁止されている場合は無視してエラーを防ぐ安全装置付きです
-try:
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-except Exception:
-    pass
-# -------------------------------------------------------
-
-# ここからライブラリの読み込み
 import streamlit as st
 import os
 from google import genai
