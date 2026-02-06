@@ -1,3 +1,6 @@
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -90,3 +93,4 @@ if prompt:
             
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
+
