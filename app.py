@@ -1,6 +1,3 @@
-import sys
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -15,7 +12,7 @@ st.set_page_config(page_title="医学部合格AI", page_icon="🩺")
 st.title("🩺 医学部受験対策 AI家庭教師")
 st.caption("東大・順天堂・慶應などの過去問PDFや、図表の解説も可能です")
 
-# --- ★ここが修正した「キー読み込み部分」です★ ---
+# --- APIキー設定 ---
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     # Streamlit CloudのSecretsから探す
@@ -28,7 +25,7 @@ if not api_key:
     st.error("APIキーが見つかりません。ローカルなら.env、クラウドならSecretsの設定を確認してください。")
 else:
     client = genai.Client(api_key=api_key)
-# ------------------------------------------------
+# ------------------
 
 # 2. 履歴の保存
 if "history" not in st.session_state:
@@ -93,5 +90,3 @@ if prompt:
             
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
-
-
