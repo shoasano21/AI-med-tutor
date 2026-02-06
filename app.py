@@ -1,38 +1,49 @@
 import streamlit as st
+import sys
+import io
+import os
+
+# --- ★重要：WindowsとCloudの両方に対応させる魔法のコード★ ---
+# Windowsのターミナルで日本語が出ない問題を直しますが、
+# クラウド上で禁止されている場合は無視してエラーを防ぎます。
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+except Exception:
+    pass
+# -------------------------------------------------------------
+
 from google import genai
 from google.genai import types
-import os
 from dotenv import load_dotenv
 from PIL import Image
 
-# 1. 設定
+# 1. アプリの設定
 load_dotenv()
 st.set_page_config(page_title="医学部合格AI", page_icon="🩺")
 
 st.title("🩺 医学部受験対策 AI家庭教師")
 st.caption("東大・順天堂・慶應などの過去問PDFや、図表の解説も可能です")
 
-# --- APIキー設定 ---
+# 2. APIキーの準備（PCとクラウドの両方に対応）
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    # Streamlit CloudのSecretsから探す
+    # PCになければクラウドの金庫(Secrets)を探す
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
     except:
         pass
 
 if not api_key:
-    st.error("APIキーが見つかりません。ローカルなら.env、クラウドならSecretsの設定を確認してください。")
+    st.error("APIキーが見つかりません。PCなら.env、クラウドならSecretsの設定を確認してください。")
 else:
     client = genai.Client(api_key=api_key)
-# ------------------
 
-# 2. 履歴の保存
+# 3. 会話の履歴を保存する場所
 if "history" not in st.session_state:
     st.session_state.history = []
     st.session_state.history.append({"role": "model", "text": "こんにちは！PDFの過去問や、画像の解説も任せてください。"})
 
-# 3. アップロード欄
+# 4. サイドバー（ファイルアップロード機能）
 with st.sidebar:
     st.header("📂 資料のアップロード")
     uploaded_file = st.file_uploader("問題(PDF/画像)をここにドラッグ", type=["jpg", "png", "jpeg", "pdf"])
@@ -40,29 +51,33 @@ with st.sidebar:
     user_content = None
     
     if uploaded_file:
+        # PDFの場合
         if uploaded_file.type == "application/pdf":
             st.success(f"📄 PDFファイルを読み込みました: {uploaded_file.name}")
             user_content = types.Part.from_bytes(
                 data=uploaded_file.getvalue(),
                 mime_type="application/pdf"
             )
+        # 画像の場合
         else:
             user_content = Image.open(uploaded_file)
             st.image(user_content, caption="読み込んだ画像", use_container_width=True)
 
-# 4. 会話履歴の表示
+# 5. チャット履歴の表示
 for message in st.session_state.history:
     with st.chat_message(message["role"]):
         st.write(message["text"])
 
-# 5. 入力と実行
+# 6. チャット入力とAIの回答処理
 prompt = st.chat_input("質問を入力してください...")
 
 if prompt:
+    # ユーザーの質問を表示
     with st.chat_message("user"):
         st.write(prompt)
     st.session_state.history.append({"role": "user", "text": prompt})
 
+    # AIの回答
     with st.chat_message("assistant"):
         with st.spinner("資料を読み込んで考え中..."):
             try:
@@ -72,6 +87,7 @@ if prompt:
                 数式はLaTeX形式ではなく、読みやすいテキストで表現してください。
                 """
 
+                # テキストとファイルをセットにする
                 contents = [prompt]
                 if user_content:
                     contents.insert(0, user_content)
