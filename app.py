@@ -1,3 +1,16 @@
+import sys
+import io
+
+# --- ★ここが修正ポイント★ ---
+# Windowsの文字化けを直す命令ですが、
+# クラウドで「それは禁止！」と怒られたら、「はい、無視します」とスルーする設定です。
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+except Exception:
+    pass
+# -----------------------------
+
 import streamlit as st
 import os
 from google import genai
