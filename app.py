@@ -12,36 +12,41 @@ st.set_page_config(page_title="医学部合格AI", page_icon="🩺")
 st.title("🩺 医学部受験対策 AI家庭教師")
 st.caption("東大・順天堂・慶應などの過去問PDFや、図表の解説も可能です")
 
-# APIクライアント準備
-try:
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-except Exception as e:
-    st.error("APIキーの設定エラーです")
+# --- ★ここが修正した「キー読み込み部分」です★ ---
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    # Streamlit CloudのSecretsから探す
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    except:
+        pass
+
+if not api_key:
+    st.error("APIキーが見つかりません。ローカルなら.env、クラウドならSecretsの設定を確認してください。")
+else:
+    client = genai.Client(api_key=api_key)
+# ------------------------------------------------
 
 # 2. 履歴の保存
 if "history" not in st.session_state:
     st.session_state.history = []
     st.session_state.history.append({"role": "model", "text": "こんにちは！PDFの過去問や、画像の解説も任せてください。"})
 
-# 3. アップロード欄（PDF対応）
+# 3. アップロード欄
 with st.sidebar:
     st.header("📂 資料のアップロード")
-    # typeに 'pdf' を追加
     uploaded_file = st.file_uploader("問題(PDF/画像)をここにドラッグ", type=["jpg", "png", "jpeg", "pdf"])
     
     user_content = None
     
     if uploaded_file:
-        # ファイルの種類によって処理を分ける
         if uploaded_file.type == "application/pdf":
             st.success(f"📄 PDFファイルを読み込みました: {uploaded_file.name}")
-            # PDFの場合は、AIに渡すための「Part」データを作成
             user_content = types.Part.from_bytes(
                 data=uploaded_file.getvalue(),
                 mime_type="application/pdf"
             )
         else:
-            # 画像の場合
             user_content = Image.open(uploaded_file)
             st.image(user_content, caption="読み込んだ画像", use_container_width=True)
 
@@ -67,24 +72,21 @@ if prompt:
                 数式はLaTeX形式ではなく、読みやすいテキストで表現してください。
                 """
 
-                # AIへの入力データを作成
                 contents = [prompt]
                 if user_content:
-                    # 画像またはPDFデータをリストの先頭に追加
                     contents.insert(0, user_content)
 
-                # 生成実行
-                response = client.models.generate_content(
-                    model="gemini-flash-latest",
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=0.7,
+                if 'client' in locals():
+                    response = client.models.generate_content(
+                        model="gemini-flash-latest",
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction,
+                            temperature=0.7,
+                        )
                     )
-                )
-                
-                st.write(response.text)
-                st.session_state.history.append({"role": "model", "text": response.text})
+                    st.write(response.text)
+                    st.session_state.history.append({"role": "model", "text": response.text})
             
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
