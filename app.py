@@ -1,23 +1,25 @@
-import streamlit as st
 import sys
 import io
-import os
 
-# --- ★重要：WindowsとCloudの両方に対応させる魔法のコード★ ---
-# Windowsのターミナルで日本語が出ない問題を直しますが、
-# クラウド上で禁止されている場合は無視してエラーを防ぎます。
+# ★最重要：Streamlitなどのライブラリを読み込む「前」に設定を変更する★
+# これでWindowsのターミナルを再起動しても日本語エラーが出なくなります
+# クラウド上で禁止されている場合は無視してエラーを防ぐ安全装置付きです
 try:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 except Exception:
     pass
-# -------------------------------------------------------------
+# -------------------------------------------------------
 
+# ここからライブラリの読み込み
+import streamlit as st
+import os
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from PIL import Image
 
-# 1. アプリの設定
+# 1. アプリの基本設定
 load_dotenv()
 st.set_page_config(page_title="医学部合格AI", page_icon="🩺")
 
@@ -54,6 +56,7 @@ with st.sidebar:
         # PDFの場合
         if uploaded_file.type == "application/pdf":
             st.success(f"📄 PDFファイルを読み込みました: {uploaded_file.name}")
+            # PDFをAIが読める形式に変換
             user_content = types.Part.from_bytes(
                 data=uploaded_file.getvalue(),
                 mime_type="application/pdf"
@@ -77,7 +80,7 @@ if prompt:
         st.write(prompt)
     st.session_state.history.append({"role": "user", "text": prompt})
 
-    # AIの回答
+    # AIの回答処理
     with st.chat_message("assistant"):
         with st.spinner("資料を読み込んで考え中..."):
             try:
@@ -90,6 +93,7 @@ if prompt:
                 # テキストとファイルをセットにする
                 contents = [prompt]
                 if user_content:
+                    # ファイルがある場合は先頭に追加
                     contents.insert(0, user_content)
 
                 if 'client' in locals():
